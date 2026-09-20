@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VirtualDrop — Wirtualne Donaty</title>
+<style>
+:root{--bg:#080c0b;--card:#121b19;--card2:#0d1412;--line:#263a35;--text:#edf7f3;--muted:#91aaa2;--accent:#8de7c5;--purple:#a993ff;--danger:#ff8d8d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#172b25 0,#080c0b 38%);color:var(--text);font:15px Inter,system-ui,Arial,sans-serif}
+a{color:var(--accent)}main{max-width:1180px;margin:auto;padding:28px 18px 70px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}h1{margin:0;font-size:30px}h2{margin:0 0 12px}h3{margin:0 0 8px}.muted{color:var(--muted)}
+nav{display:flex;gap:8px;flex-wrap:wrap}.tab{background:#14221e;color:#dff5ed;border:1px solid var(--line);padding:10px 13px;border-radius:11px;text-decoration:none}.tab.active{background:#8de7c5;color:#07100d}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.box{background:linear-gradient(180deg,#14201d,#0f1715);border:1px solid var(--line);border-radius:18px;padding:20px;margin:0 0 16px;box-shadow:0 12px 40px #0005}
+input,textarea,button{width:100%;font:inherit;border-radius:11px;padding:12px;margin:6px 0}input,textarea{background:#09100e;color:white;border:1px solid #30443e}textarea{min-height:85px;resize:vertical}
+button{border:0;background:var(--accent);color:#07100d;font-weight:800;cursor:pointer}button.alt{background:#22332e;color:#e4f4ef;border:1px solid #3a514a}button.danger{background:#4a2020;color:#ffdcdc}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#0b1210;border:1px solid var(--line);border-radius:13px;padding:14px}.num{font-size:25px;font-weight:900;margin-top:3px}
+.donation{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #26352f}.badge{padding:5px 9px;border-radius:99px;background:#241f42;color:#cfc4ff;white-space:nowrap}
+.url{background:#08100e;border:1px solid #2b4039;padding:12px;border-radius:11px;word-break:break-all}
+.notice{padding:11px;border-radius:11px;background:#10251e;color:#bdf4dc;margin-top:8px}.err{background:#2b1717;color:#ffc2c2}
+.small{font-size:13px}.hidden{display:none!important}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.row{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<header><div><h1>✦ VirtualDrop</h1><div class="muted">Wirtualne donaty + alerty OBS — bez prawdziwych pieniędzy</div></div>
+<nav><a class="tab active" href="/">Panel</a><a class="tab" href="/donate">Strona widza</a><a class="tab" href="/overlay">Overlay OBS</a></nav></header>
+
+<section id="admin">
+<div class="stats">
+<div class="stat"><div class="muted">Punkty w obiegu</div><div class="num" id="total">0 ✦</div></div>
+<div class="stat"><div class="muted">Widzowie</div><div class="num" id="count">0</div></div>
+<div class="stat"><div class="muted">Donaty</div><div class="num" id="donations">0</div></div>
+</div>
+
+<div class="grid" style="margin-top:16px">
+<section class="box"><h2>🎁 Przyznaj punkty</h2>
+<input id="user" placeholder="Nick widza"><div class="row"><input id="points" type="number" min="1" value="100"><button onclick="addPoints()">DODAJ ✦</button></div>
+<div id="pmsg" class="small"></div></section>
+
+<section class="box"><h2>🧪 Test alertu</h2>
+<div class="row"><input id="testNick" value="Kacper" placeholder="Nick"><input id="testPts" value="500" type="number"></div>
+<input id="testMsg" value="To jest test alertu!" placeholder="Wiadomość">
+<button onclick="testAlert()">POKAŻ ALERT W OBS</button>
+<div id="amsg" class="small"></div></section>
+</div>
+
+<section class="box"><h2>📺 OBS</h2>
+<p class="muted">Dodaj poniższy adres jako Browser Source w OBS. Overlay ma przezroczyste tło.</p>
+<div class="url" id="overlayUrl"></div><button class="alt" onclick="copyUrl()">KOPIUJ ADRES</button>
+<p class="small muted">Zalecane: 1920×1080. Nie zaznaczaj „Shutdown source when not visible”, jeśli chcesz mieć natychmiastowe alerty.</p>
+</section>
+
+<section class="box"><h2>📜 Ostatnie donaty</h2><div id="history" class="muted">Ładowanie…</div></section>
+</section>
+</main>
+<script>
+const API="/api";
+async function api(path, opts={}){let r=await fetch(API+path,{headers:{"content-type":"application/json"},...opts});let j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Błąd serwera");return j}
+function msg(id,t,err=false){let e=document.getElementById(id);e.textContent=t;e.className="small "+(err?"err":"")}
+async function load(){
+ try{let s=await api("/state");document.getElementById("total").textContent=s.totalPoints+" ✦";document.getElementById("count").textContent=s.users.length;document.getElementById("donations").textContent=s.donations.length;
+ document.getElementById("history").innerHTML=s.donations.slice().reverse().slice(0,20).map(d=>`<div class="donation"><div><b>${esc(d.nick)}</b><div class="muted small">${esc(d.message||"")}</div></div><span class="badge">+${d.points} ✦</span></div>`).join("")||"Brak donatów."}catch(e){document.getElementById("history").textContent=e.message}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function addPoints(){try{let nick=document.getElementById("user").value.trim(),points=+document.getElementById("points").value;if(!nick||points<1)throw Error("Podaj nick i liczbę punktów.");await api("/points",{method:"POST",body:JSON.stringify({nick,points})});msg("pmsg","✓ Dodano punkty.");load()}catch(e){msg("pmsg",e.message,true)}}
+async function testAlert(){try{let nick=document.getElementById("testNick").value.trim(),points=+document.getElementById("testPts").value,message=document.getElementById("testMsg").value;await api("/test",{method:"POST",body:JSON.stringify({nick,points,message})});msg("amsg","✓ Alert wysłany do OBS.");}catch(e){msg("amsg",e.message,true)}}
+function copyUrl(){navigator.clipboard?.writeText(location.origin+"/overlay").then(()=>msg("amsg","Skopiowano adres overlay."))}
+document.getElementById("overlayUrl").textContent=location.origin+"/overlay";load();setInterval(load,3000);
+</script>
+</body></html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VirtualDrop — Donat</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080c0b;color:#eef7f4;font:16px system-ui,Arial;display:grid;place-items:center;padding:20px}.card{width:min(560px,100%);background:#121b19;border:1px solid #2a4038;border-radius:24px;padding:26px;box-shadow:0 20px 70px #0007}h1{margin:0 0 4px}p{color:#95aaa3}input,textarea,button{width:100%;padding:13px;margin:7px 0;border-radius:11px;font:inherit}input,textarea{background:#09100e;border:1px solid #30443e;color:white}textarea{min-height:100px}button{background:#8de7c5;border:0;font-weight:900;color:#07100d;cursor:pointer}.bal{background:#0b1210;border:1px solid #2b4039;padding:14px;border-radius:12px;margin:14px 0}.err{color:#ff9c9c}.ok{color:#8de7c5}.small{font-size:13px;color:#849b94}</style></head>
+<body><div class="card"><h1>✦ Wirtualny Donat</h1><p>Wybierz liczbę punktów i wyślij wiadomość. To nie jest płatność ani prawdziwy przelew.</p>
+<input id="nick" placeholder="Twój nick"><div class="bal">Saldo: <b id="bal">—</b> ✦</div>
+<input id="pts" type="number" min="1" value="100" placeholder="Punkty"><textarea id="msg" maxlength="250" placeholder="Wiadomość do streamera"></textarea>
+<button onclick="send()">WYŚLIJ DONAT ✦</button><div id="out"></div><div class="small">Demo systemu wirtualnych punktów.</div></div>
+<script>
+async function api(p,o={}){let r=await fetch("/api"+p,{headers:{"content-type":"application/json"},...o}),j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||"Błąd");return j}
+let lastNick="";
+async function balance(){let n=document.getElementById("nick").value.trim();if(!n)return;try{let x=await api("/balance?nick="+encodeURIComponent(n));document.getElementById("bal").textContent=x.points}catch{}}
+document.getElementById("nick").addEventListener("input",()=>{clearTimeout(window.t);window.t=setTimeout(balance,300)});
+async function send(){let nick=document.getElementById("nick").value.trim(),points=+document.getElementById("pts").value,message=document.getElementById("msg").value.trim(),o=document.getElementById("out");try{let x=await api("/donate",{method:"POST",body:JSON.stringify({nick,points,message})});o.className="ok";o.textContent=`✓ Donat wysłany! Pozostało ${x.balance} ✦`;document.getElementById("bal").textContent=x.balance;document.getElementById("msg").value=""}catch(e){o.className="err";o.textContent="✕ "+e.message}}
+</script></body></html>

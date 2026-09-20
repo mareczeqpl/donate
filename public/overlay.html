@@ -1,0 +1,10 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VirtualDrop Overlay</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden;font-family:Arial,sans-serif;color:#fff}.alert{position:absolute;left:50%;top:50%;width:min(850px,80%);transform:translate(-50%,-50%) scale(.75);opacity:0;padding:24px;display:flex;gap:18px;align-items:center;background:rgba(13,18,17,.96);border:2px solid rgba(141,231,197,.5);border-radius:24px;box-shadow:0 25px 100px #0009}.show{animation:pop 6s forwards}.icon{width:72px;height:72px;flex:none;border-radius:20px;display:grid;place-items:center;background:linear-gradient(135deg,#8de7c5,#a993ff);color:#07100d;font-size:34px;font-weight:900}.body{flex:1}.nick{font-size:31px;font-weight:900}.points{font-size:24px;color:#bdaeff;float:right}.message{font-size:20px;margin-top:8px}.label{font-size:10px;letter-spacing:3px;color:#91aaa2;margin-top:10px}@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.75)}12%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.04)}}</style></head>
+<body><div class="alert" id="a"><div class="icon">✦</div><div class="body"><span class="points" id="p"></span><div class="nick" id="n"></div><div class="message" id="m"></div><div class="label">WIRTUALNY DONAT</div></div></div>
+<script>
+let last=0,active=false;
+async function poll(){try{let r=await fetch("/api/events?after="+last);let x=await r.json();for(const e of x.events){last=e.id;show(e)}}catch{}}
+function show(e){document.getElementById("n").textContent=e.nick;document.getElementById("p").textContent="+"+e.points+" ✦";document.getElementById("m").textContent=e.message||"Wysłał wirtualny donat!";let a=document.getElementById("a");a.classList.remove("show");void a.offsetWidth;a.classList.add("show")}
+setInterval(poll,700);poll();
+</script></body></html>
